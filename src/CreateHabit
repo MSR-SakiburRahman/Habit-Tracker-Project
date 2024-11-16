@@ -1,0 +1,56 @@
+import java.util.Scanner;
+
+public class CreateHabit {
+    private String[] habit;  // Store habit descriptions
+    private String[][] dailyCompletion;  // 2D array to track completion (tick/cross) for each habit and day
+    private int numOfHabit;  // Number of habits
+    private final int daysInMonth = 30;  // Assume 30 days in the month
+
+    // Constructor to initialize habits and daily completion tracker
+    public CreateHabit(int numOfHabit) {
+        this.numOfHabit = numOfHabit;
+        this.habit = new String[numOfHabit];
+        this.dailyCompletion = new String[daysInMonth][numOfHabit];
+    }
+
+    // Set the description of a habit
+    public void setHabit(int index, String habitDescription) {
+        if (index >= 0 && index < numOfHabit) {
+            habit[index] = habitDescription;
+        }
+    }
+
+    // Get the description of a habit
+    public String getHabit(int index) {
+        return (index >= 0 && index < numOfHabit) ? habit[index] : null;
+    }
+
+    // Mark the completion (tick or cross) for a habit on a specific day
+    public void markCompletion(int day, int habitIndex, String completionStatus) {
+        if (habitIndex >= 0 && habitIndex < numOfHabit && day >= 0 && day < daysInMonth) {
+            dailyCompletion[day][habitIndex] = completionStatus;
+        }
+    }
+
+    // Display the completion status for all habits over the entire month
+    public void displayHabitProgress() {
+        System.out.println("Habit Completion for the Month (Rows: Days, Columns: Habits)");
+
+        // Print header for habits
+        System.out.print(String.format("%-10s", "Day"));
+        for (int i = 0; i < numOfHabit; i++) {
+            System.out.print(String.format("%-20s", habit[i]));
+        }
+        System.out.println();
+
+        // Print progress for each day
+        for (int day = 0; day < daysInMonth; day++) {
+            System.out.print(String.format("%-10s", "Day " + (day + 1)));
+            for (int i = 0; i < numOfHabit; i++) {
+                String status = dailyCompletion[day][i] != null ? dailyCompletion[day][i] : " ";
+                System.out.print(String.format("%-20s", status));
+            }
+            System.out.println();
+        }
+    }
+}
