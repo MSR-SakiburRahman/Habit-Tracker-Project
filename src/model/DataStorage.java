@@ -1,67 +1,51 @@
 package model;
 
 import java.io.*;
-import java.util.ArrayList;
-import java.util.List;
+import java.nio.file.Paths;
 
-/**
- * Handles saving and loading habit data to and from a file.
- */
 public class DataStorage {
 
-    private static final String FILE_PATH = "D:\\Codes\\Java IntelliJ\\Experiment Project Habit Tracker\\src\\model\\HabitDataStorage.ser"; // File path for storing habits
+    // File name for habit data
+    private static final String FILE_NAME = "Data_Storage_Of_Habits.ser";
 
-    /**
-     * Saves the HabitManager instance to a file using serialization.
-     *
-     * @param habitManager The HabitManager instance to save.
-     */
+    // Method to save the HabitManager instance to a file
     public static void saveData(HabitManager habitManager) {
-        File file = new File(FILE_PATH);
-
-        // Ensure parent directories exist
-        if (!file.getParentFile().exists() && !file.getParentFile().mkdirs()) {
-            System.err.println("Failed to create directories for file: " + file.getAbsolutePath());
-            return;
-        }
-
+        File file = getDefaultFile();
         try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(file))) {
             oos.writeObject(habitManager);
-            System.out.println("Data successfully saved to: " + file.getAbsolutePath());
+            System.out.println("Habit data saved to: " + file.getAbsolutePath());
         } catch (IOException e) {
-            System.err.println("Error saving data: " + e.getMessage());
-            e.printStackTrace();
+            System.err.println("Error saving habit data: " + e.getMessage());
         }
     }
 
-    /**
-     * Loads the HabitManager instance from a file using deserialization.
-     *
-     * @return The deserialized HabitManager instance. Returns a new HabitManager if the file does not exist or an error occurs.
-     */
+    // Method to load the HabitManager instance from a file
     public static HabitManager loadData() {
-        File file = new File(FILE_PATH);
-
-        // Debug: Print the file's absolute path
-        System.out.println("Loading data from: " + file.getAbsolutePath());
-
+        File file = getDefaultFile();
         if (!file.exists()) {
-            System.out.println("File not found. Returning a new HabitManager.");
-            return HabitManager.getInstance(); // Return a new HabitManager if file doesn't exist
+            System.out.println("No existing data found. Starting with a new HabitManager instance.");
+            return HabitManager.getInstance();
         }
 
         try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream(file))) {
-            HabitManager habitManager = (HabitManager) ois.readObject();
-
-            // Replace the singleton instance with the loaded one
-            HabitManager.replaceInstance(habitManager);
-
-            System.out.println("Data successfully loaded!");
-            return habitManager;
+            HabitManager loadedManager = (HabitManager) ois.readObject();
+            HabitManager.replaceInstance(loadedManager);
+            System.out.println("Habit data loaded from: " + file.getAbsolutePath());
+            return loadedManager;
         } catch (IOException | ClassNotFoundException e) {
-            System.err.println("Error loading data: " + e.getMessage());
-            e.printStackTrace();
-            return HabitManager.getInstance(); // Return a new HabitManager on error
+            System.err.println("Error loading habit data: " + e.getMessage());
+            return HabitManager.getInstance();
         }
+    }
+
+    // Utility method to get the default file path for habit data
+    private static File getDefaultFile() {
+        // Get the current project directory
+        String projectDir = System.getProperty("user.dir"); // Returns the working directory of the application
+        File defaultDir = Paths.get(projectDir, "data").toFile(); // Create a "data" subdirectory in the project
+        if (!defaultDir.exists()) {
+            defaultDir.mkdirs(); // Create directory if it doesn't exist
+        }
+        return new File(defaultDir, FILE_NAME); // Return the full path to the data file
     }
 }
