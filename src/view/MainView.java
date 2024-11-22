@@ -17,7 +17,7 @@ public class MainView extends Application {
     private HabitManager habitManager;
     private HabitController habitController;
 
-    // Updated Constructor to accept HabitController
+    // Constructor to accept HabitManager and HabitController
     public MainView(HabitManager habitManager, HabitController habitController) {
         this.habitManager = habitManager;
         this.habitController = habitController;
@@ -35,6 +35,7 @@ public class MainView extends Application {
         // Buttons for habit management
         Button addButton = new Button("Add Habit");
         Button markDoneButton = new Button("Mark Done");
+        Button deleteButton = new Button("Delete Habit");
         Button viewAnalyticsButton = new Button("View Analytics");
 
         // Event handler for adding a new habit
@@ -51,6 +52,18 @@ public class MainView extends Application {
             }
         });
 
+        // Event handler for deleting a habit
+        deleteButton.setOnAction(e -> {
+            Habit selectedHabit = habitListView.getSelectionModel().getSelectedItem();
+            if (selectedHabit != null) {
+                habitController.removeHabit(selectedHabit.getName());
+                updateHabitList(habitListView);
+                showAlert("Habit Deleted", "The habit has been successfully deleted.");
+            } else {
+                showAlert("No Habit Selected", "Please select a habit to delete.");
+            }
+        });
+
         // Event handler for viewing analytics
         viewAnalyticsButton.setOnAction(e -> {
             Habit selectedHabit = habitListView.getSelectionModel().getSelectedItem();
@@ -62,7 +75,7 @@ public class MainView extends Application {
         });
 
         // Layout setup for buttons
-        VBox buttonBox = new VBox(10, addButton, markDoneButton, viewAnalyticsButton);
+        VBox buttonBox = new VBox(10, addButton, markDoneButton, deleteButton, viewAnalyticsButton);
         buttonBox.setStyle("-fx-padding: 10; -fx-alignment: center;");
 
         // Set up the root layout
@@ -103,7 +116,7 @@ public class MainView extends Application {
 
     // Method to display an alert dialog
     private void showAlert(String title, String message) {
-        Alert alert = new Alert(Alert.AlertType.WARNING);
+        Alert alert = new Alert(Alert.AlertType.INFORMATION);
         alert.setTitle(title);
         alert.setHeaderText(null);
         alert.setContentText(message);
