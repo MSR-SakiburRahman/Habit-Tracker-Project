@@ -1,10 +1,12 @@
 package model;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
-public class HabitManager {
+public class HabitManager implements Serializable {
 
+    private static final long serialVersionUID = 1L;
     // Singleton instance
     private static HabitManager instance;
 
@@ -55,4 +57,9 @@ public class HabitManager {
     public void clearHabits() {
         habits.clear();
     }
+
+    public static void replaceInstance(HabitManager newInstance) {
+        instance = newInstance;
+    }
+
 }

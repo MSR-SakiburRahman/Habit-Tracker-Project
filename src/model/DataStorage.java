@@ -9,41 +9,59 @@ import java.util.List;
  */
 public class DataStorage {
 
-    private static final String FILE_PATH = "habits_data.ser"; // File path for storing habits
+    private static final String FILE_PATH = "D:\\Codes\\Java IntelliJ\\Experiment Project Habit Tracker\\src\\model\\HabitDataStorage.ser"; // File path for storing habits
 
     /**
-     * Saves the list of habits to a file using serialization.
+     * Saves the HabitManager instance to a file using serialization.
      *
-     * @param habits List of Habit objects to be saved.
+     * @param habitManager The HabitManager instance to save.
      */
-    public static void saveData(List<Habit> habits) {
-        try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(FILE_PATH))) {
-            oos.writeObject(habits);
+    public static void saveData(HabitManager habitManager) {
+        File file = new File(FILE_PATH);
+
+        // Ensure parent directories exist
+        if (!file.getParentFile().exists() && !file.getParentFile().mkdirs()) {
+            System.err.println("Failed to create directories for file: " + file.getAbsolutePath());
+            return;
+        }
+
+        try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(file))) {
+            oos.writeObject(habitManager);
+            System.out.println("Data successfully saved to: " + file.getAbsolutePath());
         } catch (IOException e) {
             System.err.println("Error saving data: " + e.getMessage());
+            e.printStackTrace();
         }
     }
 
     /**
-     * Loads the list of habits from a file using deserialization.
+     * Loads the HabitManager instance from a file using deserialization.
      *
-     * @return List of Habit objects. Returns an empty list if the file does not exist or an error occurs.
+     * @return The deserialized HabitManager instance. Returns a new HabitManager if the file does not exist or an error occurs.
      */
-    public static List<Habit> loadData() {
+    public static HabitManager loadData() {
         File file = new File(FILE_PATH);
 
-        // Return an empty list if the file does not exist
+        // Debug: Print the file's absolute path
+        System.out.println("Loading data from: " + file.getAbsolutePath());
+
         if (!file.exists()) {
-            return new ArrayList<>();
+            System.out.println("File not found. Returning a new HabitManager.");
+            return HabitManager.getInstance(); // Return a new HabitManager if file doesn't exist
         }
 
         try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream(file))) {
-            @SuppressWarnings("unchecked") // Suppress warnings for unchecked cast
-            List<Habit> habits = (List<Habit>) ois.readObject();
-            return habits;
+            HabitManager habitManager = (HabitManager) ois.readObject();
+
+            // Replace the singleton instance with the loaded one
+            HabitManager.replaceInstance(habitManager);
+
+            System.out.println("Data successfully loaded!");
+            return habitManager;
         } catch (IOException | ClassNotFoundException e) {
             System.err.println("Error loading data: " + e.getMessage());
-            return new ArrayList<>(); // Return an empty list on error
+            e.printStackTrace();
+            return HabitManager.getInstance(); // Return a new HabitManager on error
         }
     }
 }

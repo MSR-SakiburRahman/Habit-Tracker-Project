@@ -8,6 +8,7 @@ import javafx.scene.layout.*;
 import javafx.stage.Stage;
 import model.Habit;
 import model.HabitManager;
+import model.DataStorage;
 
 import java.time.LocalDate;
 
@@ -16,11 +17,10 @@ public class MainView extends Application {
     private HabitManager habitManager;
     private HabitController habitController;
 
-    @Override
-    public void init() {
-        // Initialize the HabitManager and HabitController
-        this.habitManager = HabitManager.getInstance();
-        this.habitController = new HabitController();
+    // Updated Constructor to accept HabitController
+    public MainView(HabitManager habitManager, HabitController habitController) {
+        this.habitManager = habitManager;
+        this.habitController = habitController;
     }
 
     @Override
@@ -74,6 +74,12 @@ public class MainView extends Application {
         primaryStage.setTitle("Habit Tracker");
         primaryStage.setScene(scene);
         primaryStage.show();
+
+        // Save data when the application is closing
+        primaryStage.setOnCloseRequest(event -> {
+            System.out.println("Application is closing. Saving data...");
+            DataStorage.saveData(habitManager);
+        });
     }
 
     // Method to show a dialog for adding a new habit
@@ -102,9 +108,5 @@ public class MainView extends Application {
         alert.setHeaderText(null);
         alert.setContentText(message);
         alert.showAndWait();
-    }
-
-    public static void main(String[] args) {
-        launch(args);
     }
 }

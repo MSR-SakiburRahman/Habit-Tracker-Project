@@ -7,17 +7,19 @@ import javafx.stage.Stage;
 import model.Habit;
 import model.HabitManager;
 import javafx.scene.control.Button;
+import controller.HabitController;
 
-
-import java.time.LocalDate;
 import java.util.List;
 
 public class ProgressView {
 
     private HabitManager habitManager;
+    private HabitController habitController;
 
-    public ProgressView(HabitManager habitManager) {
+    // Updated Constructor to accept both HabitManager and HabitController
+    public ProgressView(HabitManager habitManager, HabitController habitController) {
         this.habitManager = habitManager;
+        this.habitController = habitController;
     }
 
     public void show(Stage stage) {
@@ -46,7 +48,8 @@ public class ProgressView {
         // Back button to return to the main view
         Button backButton = new Button("Back to Main Menu");
         backButton.setOnAction(e -> {
-            MainView mainView = new MainView();
+            // Pass both HabitManager and HabitController to the MainView
+            MainView mainView = new MainView(habitManager, habitController);
             mainView.start(stage);
         });
 
