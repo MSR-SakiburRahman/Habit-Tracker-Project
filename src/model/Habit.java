@@ -1,35 +1,25 @@
 package model;
 
-import java.io.Serializable;
 import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.TreeSet;
 
-/**
- * Represents a habit in the habit tracker.
- */
-public class Habit implements Serializable {
-
-    private static final long serialVersionUID = 1L;
-
+public class Habit {
     private String name;
-    private boolean isMeasurable;
-    private int targetValue;
-    private List<LocalDate> completionDates;
+    private boolean completedToday;
+    private Set<LocalDate> completionDates;
+    private int currentStreak;
+    private int bestStreak;
 
-    // Constructors
     public Habit(String name) {
-        this(name, false, 0); // Default: not measurable, no target value
-    }
-
-    public Habit(String name, boolean isMeasurable, int targetValue) {
         this.name = name;
-        this.isMeasurable = isMeasurable;
-        this.targetValue = targetValue;
-        this.completionDates = new ArrayList<>();
+        this.completedToday = false;
+        this.completionDates = new TreeSet<>();
+        this.currentStreak = 0;
+        this.bestStreak = 0;
     }
 
-    // Getters and Setters
     public String getName() {
         return name;
     }
@@ -38,50 +28,71 @@ public class Habit implements Serializable {
         this.name = name;
     }
 
-    public boolean isMeasurable() {
-        return isMeasurable;
+    public boolean isCompletedToday() {
+        return completedToday;
     }
 
-    public void setMeasurable(boolean isMeasurable) {
-        this.isMeasurable = isMeasurable;
-    }
-
-    public int getTargetValue() {
-        return targetValue;
-    }
-
-    public void setTargetValue(int targetValue) {
-        this.targetValue = targetValue;
-    }
-
-    public List<LocalDate> getCompletionDates() {
-        return new ArrayList<>(completionDates); // Return a copy for immutability
-    }
-
-    // Mark a habit as completed for a specific date
-    public void markDone(LocalDate date) {
-        if (!completionDates.contains(date)) {
-            completionDates.add(date);
+    public void toggleCompleted() {
+        LocalDate today = LocalDate.now();
+        if (completedToday) {
+            completionDates.remove(today);
+        } else {
+            completionDates.add(today);
         }
+        completedToday = !completedToday;
+        updateStreaks();
     }
 
-    // Check if a habit is completed on a specific date
-    public boolean isCompleted(LocalDate date) {
-        return completionDates.contains(date);
+    private void updateStreaks() {
+        LocalDate today = LocalDate.now();
+        int streak = 0;
+
+        while (completionDates.contains(today.minusDays(streak))) {
+            streak++;
+        }
+
+        currentStreak = streak;
+        bestStreak = Math.max(bestStreak, currentStreak);
     }
 
-    // Helper method to get formatted completion dates
-    public List<String> getCompletionDatesString() {
-        List<String> formattedDates = new ArrayList<>();
+    public int getCurrentStreak() {
+        return currentStreak;
+    }
+
+    public int getBestStreak() {
+        return bestStreak;
+    }
+
+    public Set<LocalDate> getCompletionDates() {
+        return completionDates;
+    }
+
+    // Serialize completion dates to a string
+    public String getCompletionDatesAsString() {
+        StringBuilder sb = new StringBuilder();
         for (LocalDate date : completionDates) {
-            formattedDates.add(date.toString());
+            sb.append(date).append(",");
         }
-        return formattedDates;
+        if (sb.length() > 0) {
+            sb.setLength(sb.length() - 1); // Remove trailing comma
+        }
+        return sb.toString();
+    }
+
+    // Deserialize a string into completion dates
+    public static Set<LocalDate> parseCompletionDates(String datesString) {
+        Set<LocalDate> dates = new HashSet<>();
+        if (datesString != null && !datesString.isEmpty()) {
+            String[] dateStrings = datesString.split(",");
+            for (String dateString : dateStrings) {
+                dates.add(LocalDate.parse(dateString));
+            }
+        }
+        return dates;
     }
 
     @Override
     public String toString() {
-        return String.format("Habit{name='%s', measurable=%s, targetValue=%d}",
-                name, isMeasurable, targetValue);
+        return name + (completedToday ? " (Completed)" : " (Not Completed)");
     }
 }

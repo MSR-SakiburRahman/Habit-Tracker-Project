@@ -1,32 +1,30 @@
 package main;
 
-import model.DataStorage;
-import model.HabitManager;
-import view.MainView;
-import controller.HabitController;
-
 import javafx.application.Application;
+import javafx.scene.Scene;
+import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
+import model.HabitTracker;
+import view.HabitTrackerGUI;
 
 public class Main extends Application {
+    private HabitTrackerGUI gui;
 
     @Override
     public void start(Stage primaryStage) {
-        // Load the HabitManager data
-        HabitManager habitManager = DataStorage.loadData();
+        HabitTracker habitTracker = new HabitTracker();
+        gui = new HabitTrackerGUI(habitTracker);
+        VBox root = gui.getMainLayout();
 
-        // Create the HabitController
-        HabitController habitController = new HabitController();
+        Scene scene = new Scene(root, 600, 600);
+        primaryStage.setTitle("Habit Tracker");
+        primaryStage.setScene(scene);
+        primaryStage.show();
+    }
 
-        // Pass the HabitManager and HabitController to the MainView
-        MainView mainView = new MainView(habitManager, habitController);
-        mainView.start(primaryStage);
-
-        // Save data when the application is closing
-        primaryStage.setOnCloseRequest(event -> {
-            System.out.println("Application is closing. Saving data...");
-            DataStorage.saveData(habitManager);
-        });
+    @Override
+    public void stop() {
+        gui.stopReminder();
     }
 
     public static void main(String[] args) {
