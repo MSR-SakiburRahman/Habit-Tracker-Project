@@ -4,21 +4,15 @@ import javafx.application.Platform;
 import javafx.geometry.Insets;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
-import javafx.scene.text.Text;
-import model.CustomException;
-import model.Habit;
-import model.HabitTracker;
+import model.*;
 
-import java.time.LocalDate;
-import java.util.Optional;
 import java.util.Timer;
 import java.util.TimerTask;
 
 public class HabitTrackerGUI {
     private VBox mainLayout;
     private HabitTracker habitTracker;
-    private ListView<Habit> habitList;
-    private Label habitDetails;
+    private ListView<Habit> habitListView;
     private Timer reminderTimer;
 
     public HabitTrackerGUI(HabitTracker habitTracker) {
@@ -26,151 +20,126 @@ public class HabitTrackerGUI {
         mainLayout = new VBox(10);
         mainLayout.setPadding(new Insets(10));
         setupUI();
-
-        // Load habits on startup
         try {
-            habitTracker.loadFromFile();
+            habitTracker.loadHabits();
             refreshHabitList();
-            showAlert("Success", "Habits loaded successfully!");
         } catch (CustomException e) {
             showAlert("Error", e.getMessage());
         }
     }
 
     private void setupUI() {
-        // Title
-        Text title = new Text("Habit Tracker");
+        Label title = new Label("Habit Tracker");
         title.setStyle("-fx-font-size: 18px; -fx-font-weight: bold;");
 
-        // Habit list
-        habitList = new ListView<>();
-        habitList.getItems().addAll(habitTracker.getHabits());
-        habitList.getSelectionModel().selectedItemProperty().addListener((obs, oldHabit, newHabit) -> {
-            if (newHabit != null) {
-                updateHabitDetails(newHabit);
-            }
-        });
+        habitListView = new ListView<>();
 
-        // Habit details area
-        habitDetails = new Label("Select a habit to view details");
-        habitDetails.setWrapText(true);
-        habitDetails.setStyle("-fx-border-color: gray; -fx-padding: 10;");
+        TextField habitInputField = new TextField();
+        habitInputField.setPromptText("Enter habit name");
 
-        // Input field for adding a habit
-        TextField habitInput = new TextField();
-        habitInput.setPromptText("Enter a new habit");
+        TextField goalInputField = new TextField();
+        goalInputField.setPromptText("Enter habit goal");
 
-        // Buttons
         Button addButton = new Button("Add Habit");
         addButton.setOnAction(e -> {
-            String habitName = habitInput.getText().trim();
-            if (!habitName.isEmpty()) {
-                Habit habit = new Habit(habitName);
-                habitTracker.addHabit(habit);
-                refreshHabitList();
-                habitInput.clear();
-            }
-        });
-
-        Button toggleButton = new Button("Toggle Completed");
-        toggleButton.setOnAction(e -> {
-            Habit selectedHabit = habitList.getSelectionModel().getSelectedItem();
-            if (selectedHabit != null) {
-                selectedHabit.toggleCompleted();
-                updateHabitDetails(selectedHabit);
-                refreshHabitList();
-            }
-        });
-
-        Button viewCompletionDatesButton = new Button("View Completion Dates");
-        viewCompletionDatesButton.setOnAction(e -> {
-            Habit selectedHabit = habitList.getSelectionModel().getSelectedItem();
-            if (selectedHabit != null) {
-                showCompletionDatesDialog(selectedHabit);
-            }
-        });
-
-        Button editButton = new Button("Edit Habit");
-        editButton.setOnAction(e -> {
-            Habit selectedHabit = habitList.getSelectionModel().getSelectedItem();
-            if (selectedHabit != null) {
-                showEditHabitDialog(selectedHabit);
-                refreshHabitList();
+            String habitName = habitInputField.getText().trim();
+            String goalText = goalInputField.getText().trim();
+            if (!habitName.isEmpty() && !goalText.isEmpty()) {
+                try {
+                    int goal = Integer.parseInt(goalText);
+                    Habit newHabit = new SimpleHabit(habitName, goal);
+                    habitTracker.addHabit(newHabit);
+                    refreshHabitList();
+                    habitInputField.clear();
+                    goalInputField.clear();
+                } catch (NumberFormatException ex) {
+                    showAlert("Error", "Goal must be a number.");
+                }
             }
         });
 
         Button deleteButton = new Button("Delete Habit");
         deleteButton.setOnAction(e -> {
-            Habit selectedHabit = habitList.getSelectionModel().getSelectedItem();
+            Habit selectedHabit = habitListView.getSelectionModel().getSelectedItem();
             if (selectedHabit != null) {
-                habitTracker.removeHabit(selectedHabit);
+                try {
+                    habitTracker.deleteHabit(selectedHabit);
+                    refreshHabitList();
+                } catch (CustomException ex) {
+                    showAlert("Error", ex.getMessage());
+                }
+            }
+        });
+
+        Button editButton = new Button("Edit Habit");
+        editButton.setOnAction(e -> {
+            Habit selectedHabit = habitListView.getSelectionModel().getSelectedItem();
+            if (selectedHabit != null) {
+                TextInputDialog nameDialog = new TextInputDialog(selectedHabit.getName());
+                nameDialog.setHeaderText("Edit Habit Name");
+                nameDialog.setContentText("New Name:");
+
+                TextInputDialog goalDialog = new TextInputDialog(String.valueOf(selectedHabit.getGoal()));
+                goalDialog.setHeaderText("Edit Habit Goal");
+                goalDialog.setContentText("New Goal:");
+
+                nameDialog.showAndWait().ifPresent(newName -> {
+                    goalDialog.showAndWait().ifPresent(newGoal -> {
+                        try {
+                            int goal = Integer.parseInt(newGoal);
+                            habitTracker.editHabit(selectedHabit, newName, goal);
+                            refreshHabitList();
+                        } catch (NumberFormatException ex) {
+                            showAlert("Error", "Goal must be a number.");
+                        }
+                    });
+                });
+            }
+        });
+
+        Button statsButton = new Button("Show Stats");
+        statsButton.setOnAction(e -> {
+            Habit selectedHabit = habitListView.getSelectionModel().getSelectedItem();
+            if (selectedHabit != null) {
+                showAlert(
+                        "Habit Stats",
+                        "Name: " + selectedHabit.getName() + "\n" +
+                                "Goal: " + selectedHabit.getGoal() + "\n" +
+                                "Days Completed: " + selectedHabit.getDaysCompleted() + "\n" +
+                                "Current Streak: " + selectedHabit.getStreak() + "\n" +
+                                "Completion %: " + String.format("%.2f", selectedHabit.getCompletionPercentage()) + "%"
+                );
+            }
+        });
+
+        Button markCompleteButton = new Button("Mark as Complete");
+        markCompleteButton.setOnAction(e -> {
+            Habit selectedHabit = habitListView.getSelectionModel().getSelectedItem();
+            if (selectedHabit != null) {
+                selectedHabit.markCompletedToday();
+                showAlert("Success", "Marked habit as completed for today!");
                 refreshHabitList();
-                habitDetails.setText("Select a habit to view details");
             }
         });
 
-        Button saveButton = new Button("Save Habits");
-        saveButton.setOnAction(e -> {
-            try {
-                habitTracker.saveToFile();
-                showAlert("Success", "Habits saved successfully!");
-            } catch (CustomException ex) {
-                showAlert("Error", ex.getMessage());
-            }
-        });
+        HBox inputBox = new HBox(10, habitInputField, goalInputField, addButton);
+        HBox actionBox = new HBox(10, deleteButton, editButton, statsButton, markCompleteButton);
 
-        // Layout
-        HBox buttonBar = new HBox(10, addButton, toggleButton, viewCompletionDatesButton, editButton, deleteButton, saveButton);
-        buttonBar.setPadding(new Insets(10, 0, 0, 0));
+        mainLayout.getChildren().addAll(title, habitListView, inputBox, actionBox);
 
-        mainLayout.getChildren().addAll(title, habitList, habitDetails, habitInput, buttonBar);
-
-        // Add a daily reminder
         setupReminder();
     }
 
     private void refreshHabitList() {
-        habitList.getItems().clear();
-        habitList.getItems().addAll(habitTracker.getHabits());
+        habitListView.getItems().clear();
+        habitListView.getItems().addAll(habitTracker.getHabits());
     }
 
-    private void updateHabitDetails(Habit habit) {
-        habitDetails.setText(
-                "Habit: " + habit.getName() + "\n" +
-                        "Completed Today: " + (habit.isCompletedToday() ? "Yes" : "No") + "\n" +
-                        "Current Streak: " + habit.getCurrentStreak() + " days\n" +
-                        "Best Streak: " + habit.getBestStreak() + " days\n" +
-                        "Completion Dates: " + habit.getCompletionDates()
-        );
-    }
-
-    private void showEditHabitDialog(Habit habit) {
-        Dialog<String> dialog = new Dialog<>();
-        dialog.setTitle("Edit Habit");
-
-        TextField nameField = new TextField(habit.getName());
-        VBox content = new VBox(10, new Label("Habit Name:"), nameField);
-        dialog.getDialogPane().setContent(content);
-
-        ButtonType saveButtonType = new ButtonType("Save", ButtonBar.ButtonData.OK_DONE);
-        dialog.getDialogPane().getButtonTypes().addAll(saveButtonType, ButtonType.CANCEL);
-
-        dialog.setResultConverter(dialogButton -> {
-            if (dialogButton == saveButtonType) {
-                return nameField.getText();
-            }
-            return null;
-        });
-
-        Optional<String> result = dialog.showAndWait();
-        result.ifPresent(newName -> habit.setName(newName));
-    }
-
-    private void showCompletionDatesDialog(Habit habit) {
+    private void showAlert(String title, String message) {
         Alert alert = new Alert(Alert.AlertType.INFORMATION);
-        alert.setTitle("Completion Dates");
-        alert.setHeaderText("Completion Dates for " + habit.getName());
-        alert.setContentText(String.join(", ", habit.getCompletionDates().toString()));
+        alert.setTitle(title);
+        alert.setHeaderText(null);
+        alert.setContentText(message);
         alert.showAndWait();
     }
 
@@ -181,19 +150,11 @@ public class HabitTrackerGUI {
             public void run() {
                 Platform.runLater(() -> showAlert("Reminder", "Don't forget to complete your habits!"));
             }
-        }, 0, 24 * 60 * 60 * 1000); // Reminder every 24 hours
+        }, 0, 24 * 60 * 60 * 1000);
     }
 
     public VBox getMainLayout() {
         return mainLayout;
-    }
-
-    private void showAlert(String title, String message) {
-        Alert alert = new Alert(Alert.AlertType.INFORMATION);
-        alert.setTitle(title);
-        alert.setHeaderText(null);
-        alert.setContentText(message);
-        alert.showAndWait();
     }
 
     public void stopReminder() {

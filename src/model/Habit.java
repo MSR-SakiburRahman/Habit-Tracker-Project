@@ -1,23 +1,23 @@
 package model;
 
+import java.io.Serializable;
 import java.time.LocalDate;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.TreeSet;
 
-public class Habit {
+public abstract class Habit implements Serializable {
     private String name;
-    private boolean completedToday;
+    private int goal;
+    private int streak;
+    private int daysCompleted;
     private Set<LocalDate> completionDates;
-    private int currentStreak;
-    private int bestStreak;
 
-    public Habit(String name) {
+    public Habit(String name, int goal) {
         this.name = name;
-        this.completedToday = false;
-        this.completionDates = new TreeSet<>();
-        this.currentStreak = 0;
-        this.bestStreak = 0;
+        this.goal = goal;
+        this.streak = 0;
+        this.daysCompleted = 0;
+        this.completionDates = new HashSet<>();
     }
 
     public String getName() {
@@ -28,71 +28,43 @@ public class Habit {
         this.name = name;
     }
 
-    public boolean isCompletedToday() {
-        return completedToday;
+    public int getGoal() {
+        return goal;
     }
 
-    public void toggleCompleted() {
+    public void setGoal(int goal) {
+        this.goal = goal;
+    }
+
+    public int getStreak() {
+        return streak;
+    }
+
+    public int getDaysCompleted() {
+        return daysCompleted;
+    }
+
+    public double getCompletionPercentage() {
+        return goal > 0 ? (daysCompleted / (double) goal) * 100 : 0;
+    }
+
+    public void markCompletedToday() {
         LocalDate today = LocalDate.now();
-        if (completedToday) {
-            completionDates.remove(today);
-        } else {
+        if (!completionDates.contains(today)) {
             completionDates.add(today);
-        }
-        completedToday = !completedToday;
-        updateStreaks();
-    }
-
-    private void updateStreaks() {
-        LocalDate today = LocalDate.now();
-        int streak = 0;
-
-        while (completionDates.contains(today.minusDays(streak))) {
+            daysCompleted++;
             streak++;
         }
-
-        currentStreak = streak;
-        bestStreak = Math.max(bestStreak, currentStreak);
-    }
-
-    public int getCurrentStreak() {
-        return currentStreak;
-    }
-
-    public int getBestStreak() {
-        return bestStreak;
     }
 
     public Set<LocalDate> getCompletionDates() {
         return completionDates;
     }
 
-    // Serialize completion dates to a string
-    public String getCompletionDatesAsString() {
-        StringBuilder sb = new StringBuilder();
-        for (LocalDate date : completionDates) {
-            sb.append(date).append(",");
-        }
-        if (sb.length() > 0) {
-            sb.setLength(sb.length() - 1); // Remove trailing comma
-        }
-        return sb.toString();
-    }
-
-    // Deserialize a string into completion dates
-    public static Set<LocalDate> parseCompletionDates(String datesString) {
-        Set<LocalDate> dates = new HashSet<>();
-        if (datesString != null && !datesString.isEmpty()) {
-            String[] dateStrings = datesString.split(",");
-            for (String dateString : dateStrings) {
-                dates.add(LocalDate.parse(dateString));
-            }
-        }
-        return dates;
-    }
+    public abstract void performAction();
 
     @Override
     public String toString() {
-        return name + (completedToday ? " (Completed)" : " (Not Completed)");
+        return name + " (Goal: " + goal + ")";
     }
 }

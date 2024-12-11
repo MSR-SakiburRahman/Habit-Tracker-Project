@@ -1,62 +1,68 @@
 package model;
 
 import java.io.*;
-import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 
 public class HabitTracker {
     private List<Habit> habits;
-    private static final String FILE_NAME = "habits.txt";
+    private static final String FILE_NAME = "habits.dat";
 
     public HabitTracker() {
         habits = new ArrayList<>();
+        try {
+            loadHabits();
+        } catch (CustomException e) {
+            System.err.println("No previous habits found. Starting fresh.");
+        }
     }
 
     public void addHabit(Habit habit) {
         habits.add(habit);
+        try {
+            saveHabits();
+        } catch (CustomException e) {
+            System.err.println("Error saving habits: " + e.getMessage());
+        }
     }
 
-    public void removeHabit(Habit habit) {
-        habits.remove(habit);
+    public void deleteHabit(Habit habit) throws CustomException {
+        if (!habits.remove(habit)) {
+            throw new CustomException("Habit not found!");
+        }
+        saveHabits();
+    }
+
+    public void editHabit(Habit habit, String newName, int newGoal) {
+        habit.setName(newName);
+        habit.setGoal(newGoal);
+        try {
+            saveHabits();
+        } catch (CustomException e) {
+            System.err.println("Error saving habits: " + e.getMessage());
+        }
     }
 
     public List<Habit> getHabits() {
         return habits;
     }
 
-    public void saveToFile() throws CustomException {
-        try (BufferedWriter writer = new BufferedWriter(new FileWriter(FILE_NAME))) {
-            for (Habit habit : habits) {
-                writer.write(habit.getName() + "|" + habit.isCompletedToday() + "|" + habit.getCurrentStreak() + "|" + habit.getBestStreak() + "|" + habit.getCompletionDatesAsString());
-                writer.newLine();
-            }
+    public void saveHabits() throws CustomException {
+        try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(FILE_NAME))) {
+            oos.writeObject(habits);
         } catch (IOException e) {
-            throw new CustomException("Failed to save habits: " + e.getMessage());
+            throw new CustomException("Error saving habits: " + e.getMessage());
         }
     }
 
-    public void loadFromFile() throws CustomException {
-        habits.clear();
-        try (BufferedReader reader = new BufferedReader(new FileReader(FILE_NAME))) {
-            String line;
-            while ((line = reader.readLine()) != null) {
-                String[] parts = line.split("\\|");
-                if (parts.length == 5) {
-                    String name = parts[0];
-                    boolean completedToday = Boolean.parseBoolean(parts[1]);
-                    int currentStreak = Integer.parseInt(parts[2]);
-                    int bestStreak = Integer.parseInt(parts[3]);
-                    Set<LocalDate> completionDates = Habit.parseCompletionDates(parts[4]);
-
-                    Habit habit = new Habit(name);
-                    habit.toggleCompleted();
-                    habits.add(habit);
-                }
-            }
-        } catch (IOException e) {
-            throw new CustomException("Failed to load habits: " + e.getMessage());
+    public void loadHabits() throws CustomException {
+        try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream(FILE_NAME))) {
+            habits = (List<Habit>) ois.readObject();
+        } catch (FileNotFoundException e) {
+            // File not found means no data yet. Not an error.
+            habits = new ArrayList<>();
+        } catch (IOException | ClassNotFoundException e) {
+            throw new CustomException("Error loading habits: " + e.getMessage());
         }
     }
 }
